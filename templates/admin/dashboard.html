@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — RestaurantBI{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <h2 class="fw-bold mb-1"><i class="bi bi-speedometer2 me-2 text-accent"></i>Analytics Dashboard</h2>
+    <p class="text-muted mb-0 small">Data Warehouse · Business Intelligence Overview</p>
+  </div>
+  <a href="{{ url_for('admin_upload') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+    <i class="bi bi-upload me-1"></i>Upload Orders
+  </a>
+</div>
+
+<!-- KPI row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card card p-3" style="background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;">
+      <span class="kpi-icon bi bi-currency-dollar"></span>
+      <div class="kpi-label">Total Revenue</div>
+      <div class="kpi-value">${{ "%.0f"|format(kpi.total_revenue) }}</div>
+      <div style="font-size:.78rem;opacity:.75;margin-top:.3rem">${{ "%.2f"|format(kpi.total_revenue) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card card p-3" style="background:linear-gradient(135deg,#10b981,#34d399);color:#fff;">
+      <span class="kpi-icon bi bi-receipt"></span>
+      <div class="kpi-label">Total Orders</div>
+      <div class="kpi-value">{{ kpi.total_orders }}</div>
+      <div style="font-size:.78rem;opacity:.75;margin-top:.3rem">unique order IDs</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card card p-3" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;">
+      <span class="kpi-icon bi bi-bag"></span>
+      <div class="kpi-label">Items Sold</div>
+      <div class="kpi-value">{{ kpi.total_items_sold }}</div>
+      <div style="font-size:.78rem;opacity:.75;margin-top:.3rem">total line items</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card card p-3" style="background:linear-gradient(135deg,#0ea5e9,#38bdf8);color:#fff;">
+      <span class="kpi-icon bi bi-graph-up"></span>
+      <div class="kpi-label">Avg Order Value</div>
+      <div class="kpi-value">${{ "%.2f"|format(kpi.avg_order_value) }}</div>
+      <div style="font-size:.78rem;opacity:.75;margin-top:.3rem">per unique order</div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header">
+        <i class="bi bi-bar-chart-fill me-2" style="color:var(--accent)"></i>Sales by Hour of Day
+        <span class="float-end small fw-normal text-muted">
+          <span style="display:inline-block;width:10px;height:10px;background:#fbbf24;border-radius:2px;margin-right:3px"></span>Morning
+          <span style="display:inline-block;width:10px;height:10px;background:#6366f1;border-radius:2px;margin:0 3px 0 8px"></span>Afternoon
+          <span style="display:inline-block;width:10px;height:10px;background:#8b5cf6;border-radius:2px;margin-right:3px"></span>Evening
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="hourChart" height="130"></canvas></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header">
+        <i class="bi bi-pie-chart-fill me-2" style="color:var(--success)"></i>Revenue by Category
+      </div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <div class="chart-wrap" style="max-width:280px">
+          <canvas id="catChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Smart Menu Ranking table -->
+<div class="card mb-4">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <span><i class="bi bi-clock-history me-2" style="color:var(--warn)"></i>Smart Menu — Category Ranking by Time Slot</span>
+    <span class="badge rounded-pill" style="background:#eef2ff;color:var(--accent);font-weight:500;font-size:.75rem;">
+      Powers the dynamic menu ordering
+    </span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 slot-table">
+        <thead style="background:#f8fafc;">
+          <tr>
+            <th class="ps-3 py-3">Category</th>
+            <th class="text-center py-3">🌅 Morning<br><small class="text-muted fw-normal">06–12h</small></th>
+            <th class="text-center py-3">☀️ Afternoon<br><small class="text-muted fw-normal">12–18h</small></th>
+            <th class="text-center py-3">🌙 Evening<br><small class="text-muted fw-normal">18–23h</small></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set cat_icons = {'Breakfast':'🥞','Lunch':'🥗','Dinner':'🥩','Beverages':'☕','Wine':'🍷','Desserts':'🍰','Snacks':'🍟'} %}
+          {% for cat in slot_rankings['morning'] %}
+          <tr>
+            <td class="ps-3 fw-semibold">
+              {{ cat_icons.get(cat.category_name, '🍽️') }} {{ cat.category_name }}
+            </td>
+            {% for slot in ['morning','afternoon','evening'] %}
+              {% set found = namespace(qty=0, rank=0) %}
+              {% for sc in slot_rankings[slot] %}
+                {% if sc.category_name == cat.category_name %}
+                  {% set found.qty = sc.total_qty %}
+                  {% set found.rank = loop.index %}
+                {% endif %}
+              {% endfor %}
+              <td class="text-center">
+                {% if found.qty > 0 %}
+                  <span class="slot-chip rank{{ found.rank if found.rank <= 3 else 'x' }}
+                    {{ 'rank1' if found.rank == 1 else ('rank2' if found.rank == 2 else ('rank3' if found.rank == 3 else 'other')) }}">
+                    #{{ found.rank }} &nbsp;·&nbsp; {{ found.qty }} sold
+                  </span>
+                {% else %}
+                  <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom row: Top items / Lowest / Recommendations -->
+<div class="row g-3">
+
+  <!-- Top 10 -->
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-trophy-fill me-2" style="color:#f59e0b"></i>Top 10 Items</div>
+      <div class="card-body p-2">
+        {% for item in top_items %}
+        <div class="rank-item">
+          <span class="rank-badge {{ 'gold' if loop.index == 1 else ('silver' if loop.index == 2 else ('bronze' if loop.index == 3 else 'plain')) }}">
+            {{ loop.index }}
+          </span>
+          <div style="min-width:0">
+            <div class="fw-semibold text-truncate" style="font-size:.88rem">{{ item.item_name }}</div>
+            <div class="text-muted" style="font-size:.75rem">{{ item.category_name }}</div>
+          </div>
+          <span class="qty-badge" style="background:#d1fae5;color:#065f46;">{{ item.total_qty }} sold</span>
+        </div>
+        {% if not loop.last %}<div class="divider mx-2"></div>{% endif %}
+        {% else %}
+        <p class="text-muted text-center py-4 mb-0">No data yet</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Lowest performers -->
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-arrow-down-circle-fill me-2" style="color:#ef4444"></i>Lowest Performers</div>
+      <div class="card-body p-2">
+        {% for item in bottom_items %}
+        <div class="rank-item">
+          <div style="min-width:0;flex:1">
+            <div class="fw-semibold text-truncate" style="font-size:.88rem">{{ item.item_name }}</div>
+            <div class="text-muted" style="font-size:.75rem">{{ item.category_name }} · margin ${{ "%.2f"|format(item.margin) }}</div>
+          </div>
+          <span class="qty-badge" style="background:#fee2e2;color:#991b1b;">{{ item.total_qty }} sold</span>
+        </div>
+        {% if not loop.last %}<div class="divider mx-2"></div>{% endif %}
+        {% else %}
+        <p class="text-muted text-center py-4 mb-0">No data yet</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Recommendations -->
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-lightbulb-fill me-2" style="color:#6366f1"></i>Optimization Recommendations</div>
+      <div class="card-body p-2">
+        {% for rec in recommendations %}
+        <div class="rec-item">
+          <span class="rec-icon">{{ rec.icon }}</span>
+          <div>
+            <div class="rec-type {{ rec.type }}">{{ rec.type | upper }}</div>
+            <div class="fw-semibold" style="font-size:.88rem">{{ rec.item }}</div>
+            <div class="text-muted" style="font-size:.78rem;line-height:1.4">{{ rec.message }}</div>
+          </div>
+        </div>
+        {% if not loop.last %}<div class="divider mx-2"></div>{% endif %}
+        {% else %}
+        <p class="text-muted text-center py-4 mb-0">Upload orders to generate recommendations.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const hourData = {{ by_hour_json | safe }};
+const catData  = {{ cat_perf_json | safe }};
+
+function slotColor(hour) {
+  if (hour >= 6  && hour < 12) return 'rgba(251,191,36,0.85)';
+  if (hour >= 12 && hour < 18) return 'rgba(99,102,241,0.85)';
+  return 'rgba(139,92,246,0.85)';
+}
+
+new Chart(document.getElementById('hourChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: hourData.map(r => r.hour + ':00'),
+    datasets: [{
+      label: 'Units Sold',
+      data: hourData.map(r => r.total_qty),
+      backgroundColor: hourData.map(r => slotColor(r.hour)),
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          afterLabel: ctx => `Revenue: $${hourData[ctx.dataIndex].total_revenue.toFixed(2)}`
+        }
+      }
+    },
+    scales: {
+      y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+const COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#0ea5e9','#f97316'];
+new Chart(document.getElementById('catChart').getContext('2d'), {
+  type: 'doughnut',
+  data: {
+    labels: catData.map(r => r.category_name),
+    datasets: [{
+      data: catData.map(r => parseFloat(r.total_revenue.toFixed(2))),
+      backgroundColor: COLORS,
+      borderWidth: 2,
+      borderColor: '#fff',
+    }]
+  },
+  options: {
+    responsive: true,
+    cutout: '62%',
+    plugins: {
+      legend: { position: 'bottom', labels: { boxWidth: 11, padding: 10, font: { size: 11 } } }
+    }
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Upload Orders — RestaurantBI{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <h2 class="fw-bold mb-1"><i class="bi bi-upload me-2 text-accent"></i>Upload Orders</h2>
+    <p class="text-muted mb-0 small">ETL pipeline — load CSV data into the Data Warehouse</p>
+  </div>
+  <a href="{{ url_for('admin_dashboard') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+    <i class="bi bi-speedometer2 me-1"></i>View Dashboard
+  </a>
+</div>
+
+<!-- ETL pipeline diagram -->
+<div class="card mb-4">
+  <div class="card-header"><i class="bi bi-diagram-3 me-2" style="color:var(--accent)"></i>ETL Pipeline</div>
+  <div class="card-body py-3">
+    <div class="row g-2 align-items-center justify-content-center text-center">
+      <div class="col-5 col-md-2">
+        <div class="etl-step">
+          <div class="step-icon" style="background:#eef2ff">📄</div>
+          <div class="fw-semibold" style="font-size:.85rem">Extract</div>
+          <div class="text-muted" style="font-size:.75rem">Parse CSV</div>
+        </div>
+      </div>
+      <div class="col-2 col-md-1 etl-arrow text-center">→</div>
+      <div class="col-5 col-md-2">
+        <div class="etl-step">
+          <div class="step-icon" style="background:#fef3c7">⚙️</div>
+          <div class="fw-semibold" style="font-size:.85rem">Transform</div>
+          <div class="text-muted" style="font-size:.75rem">Validate &amp; enrich</div>
+        </div>
+      </div>
+      <div class="col-2 col-md-1 etl-arrow text-center">→</div>
+      <div class="col-5 col-md-2">
+        <div class="etl-step">
+          <div class="step-icon" style="background:#d1fae5">🗄️</div>
+          <div class="fw-semibold" style="font-size:.85rem">Load</div>
+          <div class="text-muted" style="font-size:.75rem">FactSales + Dims</div>
+        </div>
+      </div>
+      <div class="col-2 col-md-1 etl-arrow text-center">→</div>
+      <div class="col-5 col-md-2">
+        <div class="etl-step">
+          <div class="step-icon" style="background:#ede9fe">📊</div>
+          <div class="fw-semibold" style="font-size:.85rem">Analyse</div>
+          <div class="text-muted" style="font-size:.75rem">BI queries</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- Upload form -->
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-file-earmark-arrow-up me-2" style="color:var(--accent)"></i>Upload CSV File</div>
+      <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label class="form-label fw-medium small">Select .csv file</label>
+            <input type="file" name="csv_file" accept=".csv"
+                   class="form-control rounded-3" required/>
+            <div class="form-text small">Must include the four required columns.</div>
+          </div>
+          <button type="submit" class="btn w-100 rounded-3 fw-semibold"
+                  style="background:var(--accent);color:#fff">
+            <i class="bi bi-play-fill me-2"></i>Run ETL Process
+          </button>
+        </form>
+
+        {% if result %}
+        <hr class="my-3"/>
+        <h6 class="fw-semibold mb-2">ETL Result</h6>
+        <div class="d-flex gap-3 mb-2">
+          <div class="flex-fill rounded-3 p-3 text-center" style="background:#d1fae5">
+            <div style="font-size:1.5rem;font-weight:700;color:#065f46">{{ result.processed }}</div>
+            <div style="font-size:.75rem;color:#065f46">Rows loaded</div>
+          </div>
+          <div class="flex-fill rounded-3 p-3 text-center" style="background:#fee2e2">
+            <div style="font-size:1.5rem;font-weight:700;color:#991b1b">{{ result.skipped }}</div>
+            <div style="font-size:.75rem;color:#991b1b">Rows skipped</div>
+          </div>
+        </div>
+        {% if result.errors %}
+        <div class="rounded-3 p-3" style="background:#fff7ed;border:1px solid #fed7aa">
+          <p class="fw-semibold mb-1 small" style="color:#c2410c">Errors (first 10)</p>
+          <ul class="mb-0 small" style="color:#9a3412">
+            {% for e in result.errors[:10] %}
+            <li>{{ e }}</li>
+            {% endfor %}
+            {% if result.errors|length > 10 %}
+            <li>… and {{ result.errors|length - 10 }} more</li>
+            {% endif %}
+          </ul>
+        </div>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Format guide + sample -->
+  <div class="col-lg-7">
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-table me-2 text-muted"></i>Required CSV Format</div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered small mb-2 rounded-3 overflow-hidden">
+            <thead style="background:#f8fafc">
+              <tr>
+                <th>Column</th><th>Type</th><th>Example</th><th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>order_id</code></td><td>Text</td><td>ORD001</td><td>Groups line items</td></tr>
+              <tr><td><code>item_name</code></td><td>Text</td><td>Pancakes</td><td>Must match menu item</td></tr>
+              <tr><td><code>quantity</code></td><td>Integer</td><td>2</td><td>≥ 1</td></tr>
+              <tr><td><code>order_datetime</code></td><td>YYYY-MM-DD HH:MM</td><td>2024-03-15 08:30</td><td>Drives time-slot logic</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-muted small mb-0">
+          <i class="bi bi-info-circle me-1"></i>
+          One row per item. Multiple rows share the same <code>order_id</code> for a single table order.
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="bi bi-code-square me-2" style="color:var(--success)"></i>Sample CSV</div>
+      <div class="card-body">
+        <pre class="rounded-3 p-3 mb-3" style="background:#f8fafc;font-size:.77rem">order_id,item_name,quantity,order_datetime
+ORD001,Pancakes,2,2024-03-01 08:15
+ORD001,Espresso,1,2024-03-01 08:15
+ORD002,Caesar Salad,1,2024-03-01 13:20
+ORD002,Club Sandwich,1,2024-03-01 13:20
+ORD003,Red Wine (glass),2,2024-03-01 19:45
+ORD003,Ribeye Steak,1,2024-03-01 19:45</pre>
+        <a href="{{ url_for('static', filename='sample_orders.csv') }}"
+           class="btn btn-sm rounded-pill px-3 fw-semibold"
+           style="background:#d1fae5;color:#065f46;border:none">
+          <i class="bi bi-download me-1"></i>Download sample_orders.csv (100 orders)
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Star schema diagram -->
+<div class="card mt-4">
+  <div class="card-header"><i class="bi bi-star me-2" style="color:var(--warn)"></i>Star Schema — Data Warehouse Model</div>
+  <div class="card-body">
+    <div class="row g-3 align-items-start">
+
+      <div class="col-12 col-md-4">
+        <div class="rounded-3 p-3 text-center" style="background:#eef2ff;border:2px solid #c7d2fe">
+          <div style="font-size:.7rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px">Fact Table</div>
+          <div class="fw-bold mt-1 mb-2" style="color:var(--accent)">⭐ FactSales</div>
+          <ul class="list-unstyled mb-0 small text-start" style="color:#3730a3">
+            <li>🔑 sale_id</li>
+            <li>🔗 order_id</li>
+            <li>🔗 item_id → DimMenuItem</li>
+            <li>🔗 time_id → DimTime</li>
+            <li>📦 quantity</li>
+            <li>💰 unit_price</li>
+            <li>💰 total_price</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-8">
+        <div class="row g-2">
+          {% for dim, fields, color, border in [
+            ('DimMenuItem', ['item_id','item_name','category_id','price','cost'], '#fef3c7', '#fde68a'),
+            ('DimCategory', ['category_id','category_name'], '#d1fae5', '#6ee7b7'),
+            ('DimTime',     ['time_id','order_date','hour','day_of_week','month','year','time_slot'], '#dbeafe', '#93c5fd')
+          ] %}
+          <div class="col-12 col-sm-4">
+            <div class="rounded-3 p-3" style="background:{{ color }};border:1.5px solid {{ border }}">
+              <div style="font-size:.7rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px">Dimension</div>
+              <div class="fw-bold mb-2 small">{{ dim }}</div>
+              <ul class="list-unstyled mb-0" style="font-size:.75rem;color:#374151">
+                {% for f in fields %}<li>{{ f }}</li>{% endfor %}
+              </ul>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}

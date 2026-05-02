@@ -14,6 +14,23 @@
   </a>
 </div>
 
+{% if not cat_perf %}
+<div class="text-center py-5 animate__animated animate__fadeIn">
+  <div class="mb-4">
+    <div class="bg-accent bg-opacity-10 rounded-circle d-inline-flex p-4 shadow-sm">
+      <i class="bi bi-database-exclamation text-accent" style="font-size: 3rem;"></i>
+    </div>
+  </div>
+  <h3 class="fw-bold">Warehouse is Empty</h3>
+  <p class="text-muted mx-auto mb-4" style="max-width: 400px;">
+    No data detected in the dimensions or facts. Please visit the Admin Panel to synchronize your menu and upload sales history.
+  </p>
+  <a href="{{ url_for('admin_upload') }}" class="btn btn-accent rounded-pill px-5 py-2 fw-bold shadow-sm">
+    <i class="bi bi-gear-fill me-2"></i>Go to Admin Panel
+  </a>
+</div>
+{% else %}
+
 <!-- KPI row -->
 <div class="row g-3 mb-4">
   <div class="col-6 col-xl-3">
@@ -50,6 +67,43 @@
   </div>
 </div>
 
+  <!-- AI Strategy Section -->
+  <div class="row mb-4 animate__animated animate__fadeInDown">
+    <div class="col-12">
+      <div class="card border-0 shadow-lg overflow-hidden" style="border-radius: 28px; background: var(--card-bg); border: 1px solid var(--border);">
+        <div class="card-header border-0 d-flex justify-content-between align-items-center py-4 px-4" style="background: var(--hover-bg);">
+          <div class="d-flex align-items-center gap-3">
+            <div class="bg-accent rounded-4 p-2 d-flex align-items-center justify-content-center shadow-accent" style="width: 48px; height: 48px;">
+              <i class="bi bi-cpu-fill text-white fs-4"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold mb-0">AI Strategic Insight Consultant</h5>
+              <p class="text-muted mb-0 small">Gemini 2.0 Engine • Real-time Business Intelligence</p>
+            </div>
+          </div>
+          <button onclick="getAIInsights()" class="btn btn-accent rounded-pill px-4 py-2 fw-bold shadow-sm" id="aiBtn" style="background: linear-gradient(135deg, var(--accent), #818cf8); border: none;">
+            <i class="bi bi-magic me-2"></i>Regenerate
+          </button>
+        </div>
+        <div class="card-body p-4">
+          <div id="aiFallback" class="rounded-4 p-4" style="background: var(--hover-bg); border: 1px solid var(--border); min-height: 80px;">
+            <div class="text-muted d-flex align-items-center gap-2">
+              <i class="bi bi-info-circle-fill text-accent"></i>
+              <span id="aiPromptText">Click regenerate to get automated strategic advice.</span>
+            </div>
+          </div>
+          <div id="aiContent" class="d-none">
+            <div id="aiResult" class="ai-insight-content"></div>
+          </div>
+          <div id="aiLoader" class="d-none py-4 text-center">
+            <div class="spinner-grow text-accent" role="status"></div>
+            <p class="text-accent mt-3 fw-bold small">Analyzing Restaurant Data...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <!-- Charts -->
 <div class="row g-3 mb-4">
   <div class="col-lg-7">
@@ -85,27 +139,26 @@
 <div class="card mb-4">
   <div class="card-header d-flex align-items-center justify-content-between">
     <span><i class="bi bi-clock-history me-2" style="color:var(--warn)"></i>Smart Menu — Category Ranking by Time Slot</span>
-    <span class="badge rounded-pill" style="background:#eef2ff;color:var(--accent);font-weight:500;font-size:.75rem;">
+    <span class="badge rounded-pill bg-accent-soft" style="color:var(--accent);font-weight:500;font-size:.75rem;">
       Powers the dynamic menu ordering
     </span>
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0 slot-table">
-        <thead style="background:#f8fafc;">
+        <thead class="bg-light">
           <tr>
             <th class="ps-3 py-3">Category</th>
-            <th class="text-center py-3">🌅 Morning<br><small class="text-muted fw-normal">06–12h</small></th>
+            <th class="text-center py-3">🌅 Morning<br><small class="text-muted fw-normal">08–12h</small></th>
             <th class="text-center py-3">☀️ Afternoon<br><small class="text-muted fw-normal">12–18h</small></th>
-            <th class="text-center py-3">🌙 Evening<br><small class="text-muted fw-normal">18–23h</small></th>
+            <th class="text-center py-3">🌙 Evening<br><small class="text-muted fw-normal">18–00h</small></th>
           </tr>
         </thead>
         <tbody>
-          {% set cat_icons = {'Breakfast':'🥞','Lunch':'🥗','Dinner':'🥩','Beverages':'☕','Wine':'🍷','Desserts':'🍰','Snacks':'🍟'} %}
           {% for cat in slot_rankings['morning'] %}
           <tr>
             <td class="ps-3 fw-semibold">
-              {{ cat_icons.get(cat.category_name, '🍽️') }} {{ cat.category_name }}
+              {{ cat.category_name }}
             </td>
             {% for slot in ['morning','afternoon','evening'] %}
               {% set found = namespace(qty=0, rank=0) %}
@@ -134,13 +187,14 @@
   </div>
 </div>
 
-<!-- Bottom row: Top items / Lowest / Recommendations -->
-<div class="row g-3">
+
+  <!-- Bottom row: Top items / Lowest / Recommendations -->
+  <div class="row g-3">
 
   <!-- Top 10 -->
   <div class="col-lg-4">
-    <div class="card h-100">
-      <div class="card-header"><i class="bi bi-trophy-fill me-2" style="color:#f59e0b"></i>Top 10 Items</div>
+    <div class="card shadow-sm border-0">
+      <div class="card-header"><i class="bi bi-trophy-fill me-2" style="color:#f59e0b"></i>Top 5 Items</div>
       <div class="card-body p-2">
         {% for item in top_items %}
         <div class="rank-item">
@@ -151,7 +205,7 @@
             <div class="fw-semibold text-truncate" style="font-size:.88rem">{{ item.item_name }}</div>
             <div class="text-muted" style="font-size:.75rem">{{ item.category_name }}</div>
           </div>
-          <span class="qty-badge" style="background:#d1fae5;color:#065f46;">{{ item.total_qty }} sold</span>
+          <span class="qty-badge bg-success bg-opacity-10" style="color:var(--success)">{{ item.total_qty }} sold</span>
         </div>
         {% if not loop.last %}<div class="divider mx-2"></div>{% endif %}
         {% else %}
@@ -163,7 +217,7 @@
 
   <!-- Lowest performers -->
   <div class="col-lg-4">
-    <div class="card h-100">
+    <div class="card shadow-sm border-0">
       <div class="card-header"><i class="bi bi-arrow-down-circle-fill me-2" style="color:#ef4444"></i>Lowest Performers</div>
       <div class="card-body p-2">
         {% for item in bottom_items %}
@@ -172,7 +226,7 @@
             <div class="fw-semibold text-truncate" style="font-size:.88rem">{{ item.item_name }}</div>
             <div class="text-muted" style="font-size:.75rem">{{ item.category_name }} · margin ${{ "%.2f"|format(item.margin) }}</div>
           </div>
-          <span class="qty-badge" style="background:#fee2e2;color:#991b1b;">{{ item.total_qty }} sold</span>
+          <span class="qty-badge bg-danger bg-opacity-10" style="color:var(--danger)">{{ item.total_qty }} sold</span>
         </div>
         {% if not loop.last %}<div class="divider mx-2"></div>{% endif %}
         {% else %}
@@ -184,12 +238,14 @@
 
   <!-- Recommendations -->
   <div class="col-lg-4">
-    <div class="card h-100">
+    <div class="card shadow-sm border-0">
       <div class="card-header"><i class="bi bi-lightbulb-fill me-2" style="color:#6366f1"></i>Optimization Recommendations</div>
       <div class="card-body p-2">
         {% for rec in recommendations %}
         <div class="rec-item">
-          <span class="rec-icon">{{ rec.icon }}</span>
+          <span class="rec-icon text-primary bg-primary bg-opacity-10 rounded-circle p-2 d-flex align-items-center justify-content-center" style="width:36px;height:36px">
+            <i class="bi {{ rec.icon }}"></i>
+          </span>
           <div>
             <div class="rec-type {{ rec.type }}">{{ rec.type | upper }}</div>
             <div class="fw-semibold" style="font-size:.88rem">{{ rec.item }}</div>
@@ -202,18 +258,59 @@
         {% endfor %}
       </div>
     </div>
-  </div>
-
-</div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
+const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+const gridColor = isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9';
+const textColor = isDark ? '#94a3b8' : '#64748b';
+
+async function getAIInsights() {
+  const btn = document.getElementById('aiBtn');
+  const content = document.getElementById('aiContent');
+  const fallback = document.getElementById('aiFallback');
+  const result = document.getElementById('aiResult');
+  const loader = document.getElementById('aiLoader');
+  
+  btn.disabled = true;
+  loader.classList.remove('d-none');
+  content.classList.add('d-none');
+  fallback.classList.add('d-none');
+  
+  try {
+    const res = await fetch('/admin/ai-insights');
+    const data = await res.json();
+    
+    if (data.success) {
+      // Use marked to parse the markdown into beautiful HTML
+      result.innerHTML = marked.parse(data.insight);
+      content.classList.remove('d-none');
+    } else {
+      fallback.innerHTML = `
+        <div class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger mb-0">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <strong>AI Error:</strong> ${data.insight || 'Unknown error'}
+        </div>
+      `;
+      fallback.classList.remove('d-none');
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    loader.classList.add('d-none');
+    btn.disabled = false;
+  }
+}
+
 const hourData = {{ by_hour_json | safe }};
 const catData  = {{ cat_perf_json | safe }};
 
 function slotColor(hour) {
-  if (hour >= 6  && hour < 12) return 'rgba(251,191,36,0.85)';
+  if (hour >= 8  && hour < 12) return 'rgba(251,191,36,0.85)';
   if (hour >= 12 && hour < 18) return 'rgba(99,102,241,0.85)';
   return 'rgba(139,92,246,0.85)';
 }
@@ -241,8 +338,15 @@ new Chart(document.getElementById('hourChart').getContext('2d'), {
       }
     },
     scales: {
-      y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
-      x: { grid: { display: false } }
+      y: { 
+        beginAtZero: true, 
+        grid: { color: gridColor },
+        ticks: { color: textColor }
+      },
+      x: { 
+        grid: { display: false },
+        ticks: { color: textColor }
+      }
     }
   }
 });
@@ -256,14 +360,22 @@ new Chart(document.getElementById('catChart').getContext('2d'), {
       data: catData.map(r => parseFloat(r.total_revenue.toFixed(2))),
       backgroundColor: COLORS,
       borderWidth: 2,
-      borderColor: '#fff',
+      borderColor: isDark ? '#0f172a' : '#fff',
     }]
   },
   options: {
     responsive: true,
     cutout: '62%',
     plugins: {
-      legend: { position: 'bottom', labels: { boxWidth: 11, padding: 10, font: { size: 11 } } }
+      legend: { 
+        position: 'bottom', 
+        labels: { 
+          boxWidth: 11, 
+          padding: 10, 
+          font: { size: 11 },
+          color: textColor
+        } 
+      }
     }
   }
 });

@@ -1,201 +1,233 @@
 {% extends "base.html" %}
-{% block title %}Upload Orders — RestaurantBI{% endblock %}
+{% block title %}Admin Control — RestaurantBI{% endblock %}
 
 {% block content %}
 
-<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-  <div>
-    <h2 class="fw-bold mb-1"><i class="bi bi-upload me-2 text-accent"></i>Upload Orders</h2>
-    <p class="text-muted mb-0 small">ETL pipeline — load CSV data into the Data Warehouse</p>
-  </div>
-  <a href="{{ url_for('admin_dashboard') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
-    <i class="bi bi-speedometer2 me-1"></i>View Dashboard
-  </a>
-</div>
-
-<!-- ETL pipeline diagram -->
-<div class="card mb-4">
-  <div class="card-header"><i class="bi bi-diagram-3 me-2" style="color:var(--accent)"></i>ETL Pipeline</div>
-  <div class="card-body py-3">
-    <div class="row g-2 align-items-center justify-content-center text-center">
-      <div class="col-5 col-md-2">
-        <div class="etl-step">
-          <div class="step-icon" style="background:#eef2ff">📄</div>
-          <div class="fw-semibold" style="font-size:.85rem">Extract</div>
-          <div class="text-muted" style="font-size:.75rem">Parse CSV</div>
-        </div>
-      </div>
-      <div class="col-2 col-md-1 etl-arrow text-center">→</div>
-      <div class="col-5 col-md-2">
-        <div class="etl-step">
-          <div class="step-icon" style="background:#fef3c7">⚙️</div>
-          <div class="fw-semibold" style="font-size:.85rem">Transform</div>
-          <div class="text-muted" style="font-size:.75rem">Validate &amp; enrich</div>
-        </div>
-      </div>
-      <div class="col-2 col-md-1 etl-arrow text-center">→</div>
-      <div class="col-5 col-md-2">
-        <div class="etl-step">
-          <div class="step-icon" style="background:#d1fae5">🗄️</div>
-          <div class="fw-semibold" style="font-size:.85rem">Load</div>
-          <div class="text-muted" style="font-size:.75rem">FactSales + Dims</div>
-        </div>
-      </div>
-      <div class="col-2 col-md-1 etl-arrow text-center">→</div>
-      <div class="col-5 col-md-2">
-        <div class="etl-step">
-          <div class="step-icon" style="background:#ede9fe">📊</div>
-          <div class="fw-semibold" style="font-size:.85rem">Analyse</div>
-          <div class="text-muted" style="font-size:.75rem">BI queries</div>
-        </div>
-      </div>
+<!-- Admin Header -->
+<div class="mb-5 animate__animated animate__fadeInDown">
+  <div class="d-flex align-items-center gap-3 mb-2">
+    <div class="bg-accent rounded-4 p-2 d-flex align-items-center justify-content-center shadow-accent" style="width: 54px; height: 54px;">
+      <i class="bi bi-shield-lock-fill text-white fs-3"></i>
+    </div>
+    <div>
+      <h2 class="fw-bold mb-0">System Control Center</h2>
+      <p class="text-muted mb-0 small">Manage data warehouse dimensions and ETL pipelines.</p>
     </div>
   </div>
 </div>
 
-<div class="row g-4">
-
-  <!-- Upload form -->
-  <div class="col-lg-5">
-    <div class="card">
-      <div class="card-header"><i class="bi bi-file-earmark-arrow-up me-2" style="color:var(--accent)"></i>Upload CSV File</div>
-      <div class="card-body">
-        <form method="POST" enctype="multipart/form-data">
-          <div class="mb-3">
-            <label class="form-label fw-medium small">Select .csv file</label>
-            <input type="file" name="csv_file" accept=".csv"
-                   class="form-control rounded-3" required/>
-            <div class="form-text small">Must include the four required columns.</div>
+<!-- Status / Pipeline Header -->
+<div class="row g-4 mb-4">
+  <!-- Step 01: Dimensions -->
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm admin-card h-100" style="border-radius: 20px; background: var(--card-bg); border-top: 4px solid #10b981 !important;">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="bg-success bg-opacity-10 rounded-3 p-2">
+            <i class="bi bi-list-stars text-success fs-4"></i>
           </div>
-          <button type="submit" class="btn w-100 rounded-3 fw-semibold"
-                  style="background:var(--accent);color:#fff">
-            <i class="bi bi-play-fill me-2"></i>Run ETL Process
+          <h6 class="fw-bold mb-0">01. Menu Setup</h6>
+        </div>
+        <form action="{{ url_for('admin_upload') }}" method="POST" enctype="multipart/form-data">
+          <input type="hidden" name="action" value="upload_menu">
+          <div class="custom-file-upload mb-3">
+            <input type="file" name="csv_file" id="menuFile" accept=".csv" required onchange="updateFileName(this)">
+            <label for="menuFile" class="d-flex align-items-center justify-content-center flex-column p-3 border-dashed rounded-4" style="background: var(--hover-bg); min-height: 100px; cursor: pointer;">
+              <i class="bi bi-file-earmark-spreadsheet mb-1 fs-4 text-success"></i>
+              <span class="file-name-display text-muted small">Select Menu CSV</span>
+            </label>
+          </div>
+          <button type="submit" class="btn btn-success w-100 rounded-pill fw-bold py-2 shadow-sm">
+            <i class="bi bi-arrow-repeat me-1"></i> Sync Menu
           </button>
         </form>
-
-        {% if result %}
-        <hr class="my-3"/>
-        <h6 class="fw-semibold mb-2">ETL Result</h6>
-        <div class="d-flex gap-3 mb-2">
-          <div class="flex-fill rounded-3 p-3 text-center" style="background:#d1fae5">
-            <div style="font-size:1.5rem;font-weight:700;color:#065f46">{{ result.processed }}</div>
-            <div style="font-size:.75rem;color:#065f46">Rows loaded</div>
-          </div>
-          <div class="flex-fill rounded-3 p-3 text-center" style="background:#fee2e2">
-            <div style="font-size:1.5rem;font-weight:700;color:#991b1b">{{ result.skipped }}</div>
-            <div style="font-size:.75rem;color:#991b1b">Rows skipped</div>
-          </div>
+        {% if menu_result %}
+        <div class="mt-3 p-2 rounded-3 bg-success bg-opacity-10 text-center text-success small fw-bold">
+          <i class="bi bi-check-circle-fill me-1"></i> {{ menu_result.count }} Items Set
         </div>
-        {% if result.errors %}
-        <div class="rounded-3 p-3" style="background:#fff7ed;border:1px solid #fed7aa">
-          <p class="fw-semibold mb-1 small" style="color:#c2410c">Errors (first 10)</p>
-          <ul class="mb-0 small" style="color:#9a3412">
-            {% for e in result.errors[:10] %}
-            <li>{{ e }}</li>
-            {% endfor %}
-            {% if result.errors|length > 10 %}
-            <li>… and {{ result.errors|length - 10 }} more</li>
-            {% endif %}
-          </ul>
-        </div>
-        {% endif %}
         {% endif %}
       </div>
     </div>
   </div>
 
-  <!-- Format guide + sample -->
-  <div class="col-lg-7">
-    <div class="card mb-3">
-      <div class="card-header"><i class="bi bi-table me-2 text-muted"></i>Required CSV Format</div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-sm table-bordered small mb-2 rounded-3 overflow-hidden">
-            <thead style="background:#f8fafc">
-              <tr>
-                <th>Column</th><th>Type</th><th>Example</th><th>Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td><code>order_id</code></td><td>Text</td><td>ORD001</td><td>Groups line items</td></tr>
-              <tr><td><code>item_name</code></td><td>Text</td><td>Pancakes</td><td>Must match menu item</td></tr>
-              <tr><td><code>quantity</code></td><td>Integer</td><td>2</td><td>≥ 1</td></tr>
-              <tr><td><code>order_datetime</code></td><td>YYYY-MM-DD HH:MM</td><td>2024-03-15 08:30</td><td>Drives time-slot logic</td></tr>
-            </tbody>
-          </table>
+  <!-- Step 02: Facts -->
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm admin-card h-100" style="border-radius: 20px; background: var(--card-bg); border-top: 4px solid var(--accent) !important;">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="bg-accent bg-opacity-10 rounded-3 p-2">
+            <i class="bi bi-lightning-charge-fill text-accent fs-4"></i>
+          </div>
+          <h6 class="fw-bold mb-0">02. Sales Pipeline</h6>
         </div>
-        <p class="text-muted small mb-0">
-          <i class="bi bi-info-circle me-1"></i>
-          One row per item. Multiple rows share the same <code>order_id</code> for a single table order.
-        </p>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><i class="bi bi-code-square me-2" style="color:var(--success)"></i>Sample CSV</div>
-      <div class="card-body">
-        <pre class="rounded-3 p-3 mb-3" style="background:#f8fafc;font-size:.77rem">order_id,item_name,quantity,order_datetime
-ORD001,Pancakes,2,2024-03-01 08:15
-ORD001,Espresso,1,2024-03-01 08:15
-ORD002,Caesar Salad,1,2024-03-01 13:20
-ORD002,Club Sandwich,1,2024-03-01 13:20
-ORD003,Red Wine (glass),2,2024-03-01 19:45
-ORD003,Ribeye Steak,1,2024-03-01 19:45</pre>
-        <a href="{{ url_for('static', filename='sample_orders.csv') }}"
-           class="btn btn-sm rounded-pill px-3 fw-semibold"
-           style="background:#d1fae5;color:#065f46;border:none">
-          <i class="bi bi-download me-1"></i>Download sample_orders.csv (100 orders)
-        </a>
+        <form action="{{ url_for('admin_upload') }}" method="POST" enctype="multipart/form-data">
+          <input type="hidden" name="action" value="upload_orders">
+          <div class="custom-file-upload mb-3">
+            <input type="file" name="csv_file" id="orderFile" accept=".csv" required onchange="updateFileName(this)">
+            <label for="orderFile" class="d-flex align-items-center justify-content-center flex-column p-3 border-dashed rounded-4" style="background: var(--hover-bg); min-height: 100px; cursor: pointer;">
+              <i class="bi bi-cloud-arrow-up-fill mb-1 fs-4 text-accent"></i>
+              <span class="file-name-display text-muted small">Select Orders CSV</span>
+            </label>
+          </div>
+          <button type="submit" class="btn btn-accent w-100 rounded-pill fw-bold py-2 shadow-sm">
+            <i class="bi bi-play-fill me-1"></i> Run ETL
+          </button>
+        </form>
+        {% if order_result %}
+        <div class="mt-3 d-flex gap-2">
+          <div class="flex-fill rounded-3 p-2 text-center bg-success bg-opacity-10 border border-success border-opacity-10">
+            <div class="fw-bold text-success small">{{ order_result.processed }}</div>
+            <div class="text-muted" style="font-size:10px">Done</div>
+          </div>
+          <div class="flex-fill rounded-3 p-2 text-center bg-danger bg-opacity-10 border border-danger border-opacity-10">
+            <div class="fw-bold text-danger small">{{ order_result.skipped }}</div>
+            <div class="text-muted" style="font-size:10px">Skipped</div>
+          </div>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
 
-</div>
-
-<!-- Star schema diagram -->
-<div class="card mt-4">
-  <div class="card-header"><i class="bi bi-star me-2" style="color:var(--warn)"></i>Star Schema — Data Warehouse Model</div>
-  <div class="card-body">
-    <div class="row g-3 align-items-start">
-
-      <div class="col-12 col-md-4">
-        <div class="rounded-3 p-3 text-center" style="background:#eef2ff;border:2px solid #c7d2fe">
-          <div style="font-size:.7rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px">Fact Table</div>
-          <div class="fw-bold mt-1 mb-2" style="color:var(--accent)">⭐ FactSales</div>
-          <ul class="list-unstyled mb-0 small text-start" style="color:#3730a3">
-            <li>🔑 sale_id</li>
-            <li>🔗 order_id</li>
-            <li>🔗 item_id → DimMenuItem</li>
-            <li>🔗 time_id → DimTime</li>
-            <li>📦 quantity</li>
-            <li>💰 unit_price</li>
-            <li>💰 total_price</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="col-12 col-md-8">
-        <div class="row g-2">
-          {% for dim, fields, color, border in [
-            ('DimMenuItem', ['item_id','item_name','category_id','price','cost'], '#fef3c7', '#fde68a'),
-            ('DimCategory', ['category_id','category_name'], '#d1fae5', '#6ee7b7'),
-            ('DimTime',     ['time_id','order_date','hour','day_of_week','month','year','time_slot'], '#dbeafe', '#93c5fd')
-          ] %}
-          <div class="col-12 col-sm-4">
-            <div class="rounded-3 p-3" style="background:{{ color }};border:1.5px solid {{ border }}">
-              <div style="font-size:.7rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px">Dimension</div>
-              <div class="fw-bold mb-2 small">{{ dim }}</div>
-              <ul class="list-unstyled mb-0" style="font-size:.75rem;color:#374151">
-                {% for f in fields %}<li>{{ f }}</li>{% endfor %}
-              </ul>
+  <!-- Step 03: Control -->
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm admin-card h-100" style="border-radius: 20px; background: var(--card-bg); border-top: 4px solid var(--danger) !important;">
+      <div class="card-body p-4 d-flex flex-column justify-content-between">
+        <div>
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="bg-danger bg-opacity-10 rounded-3 p-2">
+              <i class="bi bi-shield-exclamation text-danger fs-4"></i>
             </div>
+            <h6 class="fw-bold mb-0">03. Maintenance</h6>
           </div>
-          {% endfor %}
+          <p class="text-muted small">Perform a clean wipe of the warehouse database.</p>
         </div>
+        <button type="button" class="btn btn-outline-danger w-100 rounded-pill fw-bold py-2 shadow-sm mt-3" data-bs-toggle="modal" data-bs-target="#resetModal">
+          <i class="bi bi-trash-fill me-1"></i> Reset Warehouse
+        </button>
       </div>
-
     </div>
   </div>
 </div>
+
+<!-- Sample Data Section -->
+<div class="row g-4 mb-5">
+  <!-- Menu Sample -->
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100" style="border-radius: 24px; background: var(--card-bg); border: 1px solid var(--border);">
+      <div class="card-header bg-transparent border-0 pt-4 px-4">
+        <h6 class="fw-bold mb-0"><i class="bi bi-file-earmark-text me-2 text-success"></i>Menu Template Example</h6>
+      </div>
+      <div class="card-body p-4 pt-2">
+        <p class="text-muted small mb-3">Your Menu CSV must follow this structure exactly:</p>
+        <div class="p-3 rounded-4" style="background: var(--hover-bg); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #10b981; border: 1px solid var(--border); box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
+          category_name,item_name,price,margin<br>
+          Main,Beef Tacos,15.50,10.00<br>
+          Drinks,Margarita,12.00,8.50<br>
+          Sides,Guacamole,6.50,4.20<br>
+          Dessert,Churros,7.00,5.00
+        </div>
+        <div class="mt-3 p-2 rounded-3 bg-success bg-opacity-10 text-success small fw-bold" style="border-left: 3px solid #10b981;">
+          <i class="bi bi-info-circle-fill me-1"></i> Use commas (,) to separate columns.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Orders Sample -->
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100" style="border-radius: 24px; background: var(--card-bg); border: 1px solid var(--border);">
+      <div class="card-header bg-transparent border-0 pt-4 px-4">
+        <h6 class="fw-bold mb-0"><i class="bi bi-receipt me-2 text-accent"></i>Orders Template Example</h6>
+      </div>
+      <div class="card-body p-4 pt-2">
+        <p class="text-muted small mb-3">Your Sales CSV must follow this structure exactly:</p>
+        <div class="p-3 rounded-4" style="background: var(--hover-bg); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent); border: 1px solid var(--border); box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
+          order_id,item_name,quantity,order_datetime<br>
+          ORD1001,Beef Tacos,2,2024-05-02 12:30<br>
+          ORD1001,Margarita,1,2024-05-02 12:30<br>
+          ORD1002,Guacamole,1,2024-05-02 14:15<br>
+          ORD1003,Churros,3,2024-05-02 19:45
+        </div>
+        <div class="mt-3 p-2 rounded-3 bg-accent bg-opacity-10 text-accent small fw-bold" style="border-left: 3px solid var(--accent);">
+          <i class="bi bi-info-circle-fill me-1"></i> item_name must match the menu names exactly.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal remains same but refined -->
+<div class="modal fade" id="resetModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 28px; background: #1e293b;">
+      <div class="modal-body p-5 text-center">
+        <div class="bg-danger bg-opacity-10 rounded-circle d-inline-flex p-4 mb-4">
+          <i class="bi bi-exclamation-triangle-fill text-danger fs-1"></i>
+        </div>
+        <h4 class="fw-bold text-white mb-3">Irreversible Purge</h4>
+        <p class="text-white-50 mb-4">All sales facts and dimensions will be permanently deleted. This action cannot be undone.</p>
+        <div class="d-flex gap-3 justify-content-center">
+          <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+          <form action="/admin/reset" method="POST">
+            <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">Confirm Wipe</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function updateFileName(input) {
+    const fileName = input.files[0] ? input.files[0].name : "No file selected";
+    const label = input.nextElementSibling;
+    label.querySelector('.file-name-display').innerText = fileName;
+    label.querySelector('.file-name-display').classList.remove('text-muted');
+    label.querySelector('.file-name-display').classList.add('text-accent', 'fw-bold');
+    label.style.borderColor = 'var(--accent)';
+  }
+
+  // Error Pagination Logic
+  let currentErrorPage = 1;
+  const errorsPerPage = 10;
+
+  function updateErrorDisplay() {
+    const errorRows = document.querySelectorAll('.error-row');
+    if (!errorRows.length) return;
+    
+    const totalErrorPages = Math.ceil(errorRows.length / errorsPerPage);
+    const start = (currentErrorPage - 1) * errorsPerPage;
+    const end = start + errorsPerPage;
+
+    errorRows.forEach((row, index) => {
+      row.style.display = (index >= start && index < end) ? 'block' : 'none';
+    });
+
+    const titleEl = document.getElementById('errorTitle');
+    if (titleEl) titleEl.innerText = `Validation Errors (${currentErrorPage}/${totalErrorPages})`;
+    
+    const prevBtn = document.getElementById('prevErrorBtn');
+    const nextBtn = document.getElementById('nextErrorBtn');
+    
+    if (prevBtn) {
+      prevBtn.disabled = currentErrorPage === 1;
+      prevBtn.style.opacity = currentErrorPage === 1 ? '0.2' : '1';
+      prevBtn.style.cursor = currentErrorPage === 1 ? 'not-allowed' : 'pointer';
+    }
+    if (nextBtn) {
+      nextBtn.disabled = currentErrorPage === totalErrorPages;
+      nextBtn.style.opacity = currentErrorPage === totalErrorPages ? '0.2' : '1';
+      nextBtn.style.cursor = currentErrorPage === totalErrorPages ? 'not-allowed' : 'pointer';
+    }
+  }
+
+  function changeErrorPage(direction) {
+    currentErrorPage += direction;
+    updateErrorDisplay();
+  }
+
+  document.addEventListener('DOMContentLoaded', updateErrorDisplay);
+</script>
 
 {% endblock %}

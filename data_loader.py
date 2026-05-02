@@ -9,11 +9,11 @@ Expected CSV columns:
 import csv
 import io
 from datetime import datetime
-from database import get_conn
+from db_manager import get_conn
 
 
 def _time_slot(hour: int) -> str:
-    if 6 <= hour < 12:
+    if 8 <= hour < 12:
         return "morning"
     elif 12 <= hour < 18:
         return "afternoon"
@@ -103,14 +103,29 @@ def load_csv(file_stream) -> dict:
             errors.append(f"Row {i}: bad datetime '{dt_raw}'")
             skipped += 1
             continue
+        
+        # Date range validation: skip very old or far-future dates
+        if not (2020 <= dt.year <= 2030):
+            errors.append(f"Row {i}: date out of range ({dt.year}) — skipped")
+            skipped += 1
+            continue
 
-        # Look up item
+        # Debug: check what items exist if we fail
+        # (This helps us see if the menu was actually synced)
+        
+        # Look up item (Case-insensitive + Stripped)
         item = c.execute(
-            "SELECT item_id, price FROM DimMenuItem WHERE lower(item_name)=lower(?)",
+            "SELECT item_id, price FROM DimMenuItem WHERE lower(trim(item_name))=lower(trim(?))",
             (item_name,),
         ).fetchone()
         if not item:
             errors.append(f"Row {i}: unknown item '{item_name}' — skipped")
+            skipped += 1
+            continue
+
+        # Outlier detection: skip unrealistic quantities
+        if quantity <= 0 or quantity > 100:
+            errors.append(f"Row {i}: unrealistic quantity ({quantity}) — skipped")
             skipped += 1
             continue
 

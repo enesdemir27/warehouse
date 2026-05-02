@@ -3,17 +3,6 @@
 
 {% block content %}
 
-{# Category icons map #}
-{% set cat_icons = {
-  'Breakfast': '🥞',
-  'Lunch':     '🥗',
-  'Dinner':    '🥩',
-  'Beverages': '☕',
-  'Wine':      '🍷',
-  'Desserts':  '🍰',
-  'Snacks':    '🍟'
-} %}
-
 <!-- Page header -->
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
   <div>
@@ -22,61 +11,101 @@
   </div>
   <div class="d-flex align-items-center gap-2">
     <span class="slot-badge {{ slot }}">
-      {% if slot == 'morning' %}🌅
-      {% elif slot == 'afternoon' %}☀️
-      {% else %}🌙{% endif %}
       {{ slot_label }}
     </span>
-    <span class="slot-badge" style="background:#f1f5f9;color:#1e293b;">
-      <i class="bi bi-clock"></i> {{ current_time }}
-    </span>
+    <div class="dropdown">
+      <button class="slot-badge bg-light text-body border-0 d-flex align-items-center gap-2 shadow-sm px-3 py-2" 
+              type="button" data-bs-toggle="dropdown" aria-expanded="false"
+              style="cursor:pointer; height:38px; min-width:110px;">
+        <i class="bi bi-clock-fill text-accent"></i>
+        <span class="fw-bold" style="font-size:.9rem">{{ "%02d"|format(current_hour) }}:00</span>
+        <i class="bi bi-chevron-down small opacity-50"></i>
+      </button>
+      <ul class="dropdown-menu shadow-lg border-0 py-2 animate__animated animate__fadeIn" 
+          style="max-height: 300px; overflow-y: auto; background: var(--card-bg); border: 1px solid var(--border) !important; min-width: 120px;">
+        <li class="dropdown-header text-uppercase tracking-wider opacity-50" style="font-size: .65rem; color: var(--text);">Select Hour</li>
+        {% for h in range(8, 24) %}
+          <li><a class="dropdown-item" style="color: var(--text);" href="?hour={{ h }}">{{ "%02d"|format(h) }}:00</a></li>
+        {% endfor %}
+        <li><a class="dropdown-item" style="color: var(--text);" href="?hour=0">00:00</a></li>
+      </ul>
+    </div>
   </div>
 </div>
 
-<!-- Smart menu info banner -->
-<div class="d-flex align-items-start gap-3 p-3 mb-4 rounded-3 bg-accent-soft border border-indigo-100"
-     style="border-color:#c7d2fe!important;">
-  <span style="font-size:1.3rem;margin-top:.1rem">✨</span>
-  <div>
-    <span class="fw-semibold text-accent">Smart Menu Active</span>
-    <span class="text-muted ms-2 small">
-      Categories are reordered in real time based on historical sales for the
-      <strong>{{ slot_label }}</strong> period.
-      {% if not categories or categories[0].total_qty == 0 %}
-        — <a href="{{ url_for('admin_upload') }}" class="text-accent">Upload orders</a> to activate.
-      {% endif %}
+{% if not categories %}
+<div class="text-center py-5 animate__animated animate__fadeIn">
+  <div class="mb-4">
+    <div class="bg-accent bg-opacity-10 rounded-circle d-inline-flex p-4 shadow-sm" style="background: rgba(99,102,241,0.08);">
+      <i class="bi bi-box-seam text-accent" style="font-size: 3.5rem;"></i>
+    </div>
+  </div>
+  <h2 class="fw-bold">Data Warehouse is Initializing</h2>
+  <p class="text-muted mx-auto mb-4" style="max-width: 450px;">
+    We are currently setting up the digital catalog. 
+    Please check back in a few moments or explore our admin panel to populate the warehouse with your data.
+  </p>
+</div>
+{% else %}
+
+<!-- Search bar -->
+<div class="mb-4">
+  <div class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden border">
+    <span class="input-group-text border-0 ps-4" style="background:var(--card-bg)!important;">
+      <i class="bi bi-search text-muted"></i>
     </span>
+    <input type="text" id="menu-search" class="form-control border-0 py-3 ps-2" 
+           placeholder="Search for dishes, drinks, or desserts..." 
+           onkeyup="searchItems()"
+           style="background:var(--card-bg)!important;color:var(--text);font-size:.95rem;">
   </div>
 </div>
 
 <!-- Category pill navigation -->
 <div class="cat-nav mb-4">
+  <a href="#" class="cat-pill active"
+     data-target="pane-all"
+     onclick="switchCat(event, 'pane-all')">
+    <span>All Products</span>
+  </a>
   {% for cat in categories %}
-  <a href="#" class="cat-pill {% if loop.first %}active{% endif %}"
+  <a href="#" class="cat-pill"
      data-target="pane-{{ cat.category_id }}"
      onclick="switchCat(event, 'pane-{{ cat.category_id }}')">
-    {% if cat.total_qty > 0 %}
-      <span class="rank-dot">{{ loop.index }}</span>
-    {% endif %}
-    <span>{{ cat_icons.get(cat.category_name, '🍽️') }}</span>
     <span>{{ cat.category_name }}</span>
-    {% if cat.total_qty > 0 %}
-      <span style="font-size:.75rem;opacity:.75;">{{ cat.total_qty }}</span>
-    {% endif %}
   </a>
   {% endfor %}
 </div>
 
-<!-- Category content panes -->
+<!-- All Products Pane -->
+<div id="pane-all" class="cat-pane">
+  <div class="section-header mb-3">
+    <h3 class="section-title">All Products</h3>
+  </div>
+  <div class="row g-2 mb-5">
+    {% for item in all_items %}
+    <div class="col-12 col-sm-6 col-xl-4">
+      <div class="menu-item-card">
+        <div>
+          <div class="item-name">{{ item.item_name }}</div>
+          <div class="item-margin">
+            <i class="bi bi-graph-up me-1"></i>
+            Margin: ${{ "%.2f"|format(item.margin) }}
+            &nbsp;·&nbsp; {{ "%.0f"|format(item.margin / item.price * 100) }}% profit
+          </div>
+        </div>
+        <div class="item-price">${{ "%.2f"|format(item.price) }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
 {% for cat in categories %}
-<div id="pane-{{ cat.category_id }}" class="cat-pane {% if not loop.first %}d-none{% endif %}">
+<div id="pane-{{ cat.category_id }}" class="cat-pane d-none">
 
   <!-- Section header -->
   <div class="section-header mb-3">
-    <h3 class="section-title">
-      <span class="cat-icon">{{ cat_icons.get(cat.category_name, '🍽️') }}</span>
-      {{ cat.category_name }}
-    </h3>
+    <h3 class="section-title">{{ cat.category_name }}</h3>
     {% if cat.total_qty > 0 %}
     <span class="text-muted small">
       <i class="bi bi-bar-chart-fill text-accent me-1"></i>
@@ -110,7 +139,7 @@
 
 </div>
 {% endfor %}
-
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
@@ -125,6 +154,38 @@ function switchCat(e, targetId) {
   document.getElementById(targetId).classList.remove('d-none');
   // activate clicked pill
   e.currentTarget.classList.add('active');
+}
+
+function searchItems() {
+  const query = document.getElementById('menu-search').value.toLowerCase();
+  const items = document.querySelectorAll('.menu-item-card');
+  const panes = document.querySelectorAll('.cat-pane');
+  const pills = document.querySelector('.cat-nav');
+
+  items.forEach(card => {
+    const name = card.querySelector('.item-name').innerText.toLowerCase();
+    const isMatch = name.includes(query);
+    card.closest('.col-12').classList.toggle('d-none', !isMatch);
+  });
+
+  // If searching, show the "All Products" pane and hide the nav pills to avoid confusion
+  if (query.length > 0) {
+    panes.forEach(p => p.classList.add('d-none'));
+    document.getElementById('pane-all').classList.remove('d-none');
+    pills.classList.add('d-opacity-50');
+    document.getElementById('pane-all').querySelector('.section-title').innerHTML = `Search Results for "${query}"`;
+  } else {
+    // Reset to "All Products" view
+    document.getElementById('pane-all').querySelector('.section-title').innerHTML = `All Products`;
+    pills.classList.remove('d-opacity-50');
+    // Keep current selection (which defaults to 'pane-all' on refresh)
+    const activePill = document.querySelector('.cat-pill.active');
+    if (activePill) {
+      const target = activePill.getAttribute('data-target');
+      panes.forEach(p => p.classList.add('d-none'));
+      document.getElementById(target).classList.remove('d-none');
+    }
+  }
 }
 </script>
 {% endblock %}

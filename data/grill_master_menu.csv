@@ -1,0 +1,22 @@
+item_name,category,price,cost
+Ribeye Steak,Steaks,45,20
+T-Bone Steak,Steaks,55,25
+Classic Burger,Burgers,18,7
+Bacon Burger,Burgers,22,9
+Filet Mignon,Steaks,50,22
+Onion Rings,Sides,8,2
+French Fries,Sides,7,1.5
+Craft Beer,Beverages,10,3
+Red Wine Glass,Beverages,12,4
+Grilled Corn,Sides,6,1
+Sirloin Steak,Steaks,38,16
+Lamb Chops,Steaks,42,18
+BBQ Ribs,Steaks,30,12
+Chicken Wings,Sides,14,5
+Mashed Potatoes,Sides,7,2
+Coleslaw,Sides,5,1
+Whiskey Sour,Beverages,14,4
+Lemonade,Beverages,5,1
+New York Cheesecake,Desserts,10,4
+Chocolate Brownie,Desserts,9,3
+Wagyu Burger,Burgers,35,15

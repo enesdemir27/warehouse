@@ -1,0 +1,22 @@
+item_name,category,price,cost
+Margherita,Pizza,14,4
+Pepperoni,Pizza,17,6
+Quattro Formaggi,Pizza,19,7
+Fettuccine Alfredo,Pasta,16,5
+Lasagna,Pasta,18,7
+Caesar Salad,Salads,12,4
+Greek Salad,Salads,11,3.5
+Tiramisu,Desserts,9,3
+Espresso,Drinks,3.5,0.5
+Italian Soda,Drinks,5,1
+Caprese Salad,Salads,13,5
+Bolognese,Pasta,17,6
+Carbonara,Pasta,16,5
+Calzone,Pizza,18,7
+Marinara Pizza,Pizza,12,3
+Focaccia,Salads,6,1
+Pesto Pasta,Pasta,15,4
+Prosecco,Drinks,12,4
+Panna Cotta,Desserts,8,3
+Cannoli,Desserts,7,2.5
+Burrata,Salads,16,7

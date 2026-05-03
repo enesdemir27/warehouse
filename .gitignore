@@ -3,5 +3,5 @@ __pycache__/
 *.pyc
 instance/
 .pytest_cache/
-data/*.csv
+# data/*.csv (Removed to allow pushing data files)
 warehouse.db
